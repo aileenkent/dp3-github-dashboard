@@ -2,6 +2,14 @@ import duckdb
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib
+
+from matplotlib import rcParams
+rcParams['axes.unicode_minus'] = False
+
+def safe_label(text):
+    """Replace non-displayable characters with '?'"""
+    return text.encode('ascii', errors='replace').decode('ascii')
 
 def plot_commit_activity():
     con = duckdb.connect(database="data/commits.db")
@@ -37,8 +45,10 @@ def plot_top_contributors():
         plt.show()
     con.close()
 
-def plot_contribution_heatmap(df):
+def plot_contribution_heatmap():
     """Heatmap of commit intensity per author over weeks"""
+    con = duckdb.connect(database="data/commits.db")
+    df = con.execute("SELECT * FROM commits").fetchdf()
     df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
     for repo in df['repo'].unique():
         subset = df[df['repo']==repo]
@@ -46,16 +56,19 @@ def plot_contribution_heatmap(df):
         plt.figure(figsize=(12,6))
         sns.heatmap(heat, cmap='Blues', linewidths=.5)
         plt.title(f"Weekly Commit Heatmap for {repo}")
-        plt.ylabel("Author")
-        plt.xlabel("Week")
+        plt.ylabel(safe_label("Author"))
+        plt.xlabel(safe_label("Week"))
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         safe_repo = repo.replace("/", "_")
         plt.savefig(f"data/heatmap_{safe_repo}.png")
         plt.close()
+    con.close()
 
-def plot_commit_vs_contributors(df):
+def plot_commit_vs_contributors():
     """Comparative scatter plot: total commits vs number of contributors per repo"""
+    con = duckdb.connect(database="data/commits.db")
+    df = con.execute("SELECT * FROM commits").fetchdf()
     summary = df.groupby('repo').agg(
         total_commits=('author','count'),
         contributors=('author','nunique')
@@ -69,7 +82,10 @@ def plot_commit_vs_contributors(df):
     plt.tight_layout()
     plt.savefig("data/commits_vs_contributors.png")
     plt.close()
+    con.close()
 
 if __name__ == "__main__":
     plot_commit_activity()
     plot_top_contributors()
+    plot_contribution_heatmap()
+    plot_commit_vs_contributors()
