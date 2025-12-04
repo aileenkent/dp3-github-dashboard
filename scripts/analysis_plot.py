@@ -49,19 +49,21 @@ def plot_contribution_heatmap():
     """Heatmap of commit intensity per author over weeks"""
     con = duckdb.connect(database="data/commits.db")
     df = con.execute("SELECT * FROM commits").fetchdf()
+    df['date'] = pd.to_datetime(df['date'])
+    df = df[df['date'].dt.year == 2025]
     df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
     for repo in df['repo'].unique():
         subset = df[df['repo']==repo]
         heat = subset.groupby(['author','week']).size().unstack(fill_value=0)
         plt.figure(figsize=(12,6))
         sns.heatmap(heat, cmap='Blues', linewidths=.5)
-        plt.title(f"Weekly Commit Heatmap for {repo}")
+        plt.title(f"Weekly Commit Heatmap for {repo} (2025)")
         plt.ylabel(safe_label("Author"))
         plt.xlabel(safe_label("Week"))
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         safe_repo = repo.replace("/", "_")
-        plt.savefig(f"data/heatmap_{safe_repo}.png")
+        plt.savefig(f"data/heatmap_{safe_repo}_2025.png")
         plt.close()
     con.close()
 
