@@ -5,7 +5,10 @@ import json
 from datetime import datetime
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-HEADERS = {"Authorization": f"token{GITHUB_TOKEN}"}
+if not GITHUB_TOKEN:
+    raise ValueError("Please set your GITHUB_TOKEN environment variable")
+
+HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
 
 def fetch_commits(owner: str, repo: str, per_page=100, max_pages=10):
     """Fetch commits form a Github repository."""
@@ -23,7 +26,7 @@ def fetch_commits(owner: str, repo: str, per_page=100, max_pages=10):
         all_commits.extend(data)
         time.sleep(1)
     os.makedirs("data/raw", exist_ok=True)
-    with open(f"data/raw{repo}_commits.json", "w") as f:
+    with open(f"data/raw/{repo}_commits.json", "w") as f:
         json.dump(all_commits, f, indent=2)
     print(f"Saved {len(all_commits)} commits for {repo}")
     return all_commits
